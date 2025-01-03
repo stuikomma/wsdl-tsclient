@@ -66,6 +66,7 @@ function parseDefinition(
     options: ParserOptions,
     name: string,
     defParts: { [propNameType: string]: any },
+    originalSchema: ComplexTypeElement | undefined,
     stack: string[],
     visitedDefs: Array<VisitedDefinition>
 ): Definition {
@@ -120,6 +121,7 @@ function parseDefinition(
                             description: type,
                             type: toPrimitiveType(type),
                             isArray: true,
+                            isOptional: true,
                         });
                     } else if (type instanceof ComplexTypeElement) {
                         // TODO: Finish complex type parsing by updating node-soap
@@ -130,6 +132,7 @@ function parseDefinition(
                             description: "ComplexType are not supported yet",
                             type: "any",
                             isArray: true,
+                            isOptional: true,
                         });
                         Logger.warn(`Cannot parse ComplexType '${stack.join(".")}.${name}' - using 'any' type`);
                     } else {
@@ -143,6 +146,7 @@ function parseDefinition(
                                 sourceName: propName,
                                 ref: visited.definition,
                                 isArray: true,
+                                isOptional: true,
                             });
                         } else {
                             try {
@@ -151,6 +155,7 @@ function parseDefinition(
                                     options,
                                     stripedPropName,
                                     type,
+                                    undefined,
                                     [...stack, propName],
                                     visitedDefs
                                 );
@@ -160,6 +165,7 @@ function parseDefinition(
                                     sourceName: propName,
                                     ref: subDefinition,
                                     isArray: true,
+                                    isOptional: true,
                                 });
                             } catch (err) {
                                 const e = new Error(
@@ -170,6 +176,9 @@ function parseDefinition(
                         }
                     }
                 } else if (typeof type === "string") {
+                    const originalSchemaElement = originalSchema?.children[0]?.children.find(
+                        (element) => element.$name === propName
+                    );
                     // primitive type
                     definition.properties.push({
                         kind: "PRIMITIVE",
@@ -178,6 +187,7 @@ function parseDefinition(
                         description: type,
                         type: toPrimitiveType(type),
                         isArray: false,
+                        isOptional: (originalSchemaElement as any)?.["$minOccurs"] === "0",
                     });
                 } else if (type instanceof ComplexTypeElement) {
                     // TODO: Finish complex type parsing by updating node-soap
@@ -188,6 +198,7 @@ function parseDefinition(
                         description: "ComplexType are not supported yet",
                         type: "any",
                         isArray: false,
+                        isOptional: true,
                     });
                     Logger.warn(`Cannot parse ComplexType '${stack.join(".")}.${name}' - using 'any' type`);
                 } else {
@@ -202,6 +213,7 @@ function parseDefinition(
                             description: "",
                             ref: reference.definition,
                             isArray: false,
+                            isOptional: true,
                         });
                     } else {
                         try {
@@ -210,6 +222,7 @@ function parseDefinition(
                                 options,
                                 propName,
                                 type,
+                                undefined,
                                 [...stack, propName],
                                 visitedDefs
                             );
@@ -219,6 +232,7 @@ function parseDefinition(
                                 sourceName: propName,
                                 ref: subDefinition,
                                 isArray: false,
+                                isOptional: true,
                             });
                         } catch (err) {
                             const e = new Error(`Error while parsing Subdefinition for ${stack.join(".")}.${name}`);
@@ -300,6 +314,13 @@ export async function parseWsdl(wsdlPath: string, options: Partial<ParserOptions
                                     const type = parsedWsdl.findDefinition(
                                         inputMessage.element.$type ?? inputMessage.element.$name
                                     );
+                                    const typeNameWithoutNamespace = changeCase(inputMessage.element.$name, {
+                                        pascalCase: true,
+                                    });
+                                    const originalSchema =
+                                        wsdl.definitions.schemas[inputMessage.element.targetNamespace].complexTypes[
+                                            typeNameWithoutNamespace
+                                        ];
                                     inputDefinition =
                                         type ??
                                         parseDefinition(
@@ -307,6 +328,7 @@ export async function parseWsdl(wsdlPath: string, options: Partial<ParserOptions
                                             mergedOptions,
                                             typeName,
                                             inputMessage.parts,
+                                            originalSchema,
                                             [typeName],
                                             visitedDefinitions
                                         );
@@ -319,6 +341,7 @@ export async function parseWsdl(wsdlPath: string, options: Partial<ParserOptions
                                             mergedOptions,
                                             requestParamName,
                                             inputMessage.parts,
+                                            undefined,
                                             [requestParamName],
                                             visitedDefinitions
                                         );
@@ -347,6 +370,7 @@ export async function parseWsdl(wsdlPath: string, options: Partial<ParserOptions
                                             mergedOptions,
                                             typeName,
                                             outputMessage.parts,
+                                            undefined,
                                             [typeName],
                                             visitedDefinitions
                                         );
@@ -359,6 +383,7 @@ export async function parseWsdl(wsdlPath: string, options: Partial<ParserOptions
                                             mergedOptions,
                                             responseParamName,
                                             outputMessage.parts,
+                                            undefined,
                                             [responseParamName],
                                             visitedDefinitions
                                         );

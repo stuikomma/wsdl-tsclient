@@ -44,7 +44,7 @@ export interface Options {
     /**
      * Generate imports with .js suffix
      */
-    esm: boolean
+    esm: boolean;
     /**
      * Print verbose logs
      * @default false

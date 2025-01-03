@@ -59,7 +59,8 @@ const conf = yargs(process.argv.slice(2))
     .option("no-color", {
         type: "boolean",
         description: "Logs without colors",
-    }).parseSync();
+    })
+    .parseSync();
 
 // Logger section
 

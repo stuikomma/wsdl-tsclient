@@ -56,13 +56,13 @@ function createProperty(
     type: string,
     doc: string,
     isArray: boolean,
-    optional = true
+    optional: boolean
 ): PropertySignatureStructure {
     return {
         kind: StructureKind.PropertySignature,
         name: sanitizePropName(name),
         docs: [doc],
-        hasQuestionToken: true,
+        hasQuestionToken: optional,
         type: isArray ? `Array<${type}>` : type,
     };
 }
@@ -98,7 +98,9 @@ function generateDefinitionFile(
         }
         if (prop.kind === "PRIMITIVE") {
             // e.g. string
-            definitionProperties.push(createProperty(prop.name, prop.type, prop.description, prop.isArray));
+            definitionProperties.push(
+                createProperty(prop.name, prop.type, prop.description, prop.isArray, prop.isOptional)
+            );
         } else if (prop.kind === "REFERENCE") {
             // e.g. Items
             if (!generated.includes(prop.ref)) {
@@ -109,7 +111,9 @@ function generateDefinitionFile(
             if (prop.ref.name !== definition.name) {
                 addSafeImport(definitionImports, `./${prop.ref.name}${options.esm ? ".js" : ""}`, prop.ref.name);
             }
-            definitionProperties.push(createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray));
+            definitionProperties.push(
+                createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray, prop.isOptional)
+            );
         }
     }
 
