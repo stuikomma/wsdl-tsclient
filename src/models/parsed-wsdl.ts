@@ -9,6 +9,8 @@ export type DefinitionProperty =
           kind: "PRIMITIVE";
           isArray?: boolean;
           type: string;
+          isOptional: boolean;
+          isNullable: boolean;
       }
     | {
           name: string;
@@ -21,6 +23,8 @@ export type DefinitionProperty =
           kind: "REFERENCE";
           isArray?: boolean;
           ref: Definition;
+          isOptional: boolean;
+          isNullable: boolean;
       };
 
 export interface Definition {
